@@ -520,8 +520,17 @@ gen inelig_voter_04
 	replace inelig_voter04 = 1 if vote_g2004_ineligibile == 1
 */
 
+**Odd year election voting
+gen pre_g08_oddyear = 0
+	replace pre_g08_oddyear = 1 if vote_g2007 == 1 | vote_g2005 == 1 | vote_g2003 == 1 | vote_g2001 == 1
+**Primary election voting
+gen pre_p08_even= 0
+	replace pre_p08_even = 1 if vote_p2006 == 1 | vote_p2004 == 1 | vote_p2002 == 1 | vote_p2000 == 1 | vote_p1998 == 1 | vote_p1996 == 1
+
 **Interactions
 gen married_female = consumer_smarstat_m*gender_female
+gen vote_p0408 = 0
+	replace vote_p0408 = 1 if vote_p2008 == 1 | vote_p2004 == 1
 
 *Model building for ineligble in 2004
 logit vote_g2008 age08_1825 age08_2635 age08_4655 age08_5665 age08_6675 age08_over75 ///
@@ -581,6 +590,15 @@ logit vote_g2008 age08_1825 age08_2635 age08_4655 age08_5665 age08_6675 age08_ov
 	urbanpcnt_mean ruralpcnt_mean hisppcnt_mean ///
 	farmingprct_mean manufacturingprct_mean finan_realest_srvsprct_mean ///
 	if vote_g2008_ineligibile == 0 & vote_g2004_ineligibile == 1 & oos == 0
+	
+logit vote_g2008 age08_1825 age08_2635 age08_4655 age08_5665 age08_6675 age08_over75 ///
+	vote_p2008 ///
+	gender_female consumer_smarstat_m married_female ideology_u ///
+	religion_p religion_x religion_m religion_c ///
+	cd_turnout04 hhvoters ///
+	urbanpcnt_mean ruralpcnt_mean hisppcnt_mean ///
+	farmingprct_mean manufacturingprct_mean finan_realest_srvsprct_mean ///
+	if vote_g2008_ineligibile == 0 & vote_g2004_ineligibile == 1 & oos == 0
 
 *Validation for ineligble in 2004
 drop vote_prob vote_prob_dec
@@ -593,10 +611,73 @@ graph bar (mean) vote_prob vote_g2008 if vote_g2008_ineligibile == 0 & vote_g200
 	title(North Carolina) subtitle(Not eligible to vote 2004)
 	
 *Model building for new voters in 2004
+logit vote_g2008 age08_1825 age08_2635 age08_4655 age08_5665 age08_6675 age08_over75 ///
+	if vote_g2008_ineligibile == 0 & new_voter_04 == 1 & oos == 0
+
+logit vote_g2008 age08_1825 age08_2635 age08_4655 age08_5665 age08_6675 age08_over75 ///
+	pre_g08_oddyear pre_p08_even ///
+	if vote_g2008_ineligibile == 0 & new_voter_04 == 1 & oos == 0
+	
+logit vote_g2008 age08_1825 age08_2635 age08_4655 age08_5665 age08_6675 age08_over75 ///
+	pre_g08_oddyear ///
+	gender_female consumer_smarstat_m married_female ///
+	if vote_g2008_ineligibile == 0 & new_voter_04 == 1 & oos == 0
+	
+logit vote_g2008 age08_1825 age08_2635 age08_4655 age08_5665 age08_6675 age08_over75 ///
+	pre_g08_oddyear vote_p2008 vote_p2004 vote_p0408 ///
+	gender_female consumer_smarstat_m married_female ///
+	if vote_g2008_ineligibile == 0 & new_voter_04 == 1 & oos == 0
+
+logit vote_g2008 age08_1825 age08_2635 age08_4655 age08_5665 age08_6675 age08_over75 ///
+	pre_g08_oddyear vote_p2008 vote_p2004 vote_p0408 ///
+	gender_female consumer_smarstat_m married_female ideology_u ///
+	if vote_g2008_ineligibile == 0 & new_voter_04 == 1 & oos == 0
+	
+logit vote_g2008 age08_1825 age08_2635 age08_4655 age08_5665 age08_6675 age08_over75 ///
+	pre_g08_oddyear vote_p2008 vote_p2004 vote_p0408 ///
+	religion_p religion_x religion_c ///
+	gender_female consumer_smarstat_m married_female ideology_u ///
+	if vote_g2008_ineligibile == 0 & new_voter_04 == 1 & oos == 0
+
+logit vote_g2008 age08_1825 age08_2635 age08_4655 age08_5665 age08_6675 age08_over75 ///
+	pre_g08_oddyear vote_p2008 vote_p2004 vote_p0408 ///
+	gender_female consumer_smarstat_m married_female ideology_u ///
+	religion_p religion_x religion_c ///
+	cd_turnout04 hhvoters ///
+	if vote_g2008_ineligibile == 0 & new_voter_04 == 1 & oos == 0
+	
+logit vote_g2008 age08_1825 age08_2635 age08_4655 age08_5665 age08_6675 age08_over75 ///
+	pre_g08_oddyear vote_p2008 vote_p2004 vote_p0408 ///
+	gender_female consumer_smarstat_m married_female ideology_u ///
+	religion_p religion_x religion_c ///
+	cd_turnout04 hhvoters ///
+	urbanpcnt_mean ruralpcnt_mean hisppcnt_mean ///
+	farmingprct_mean manufacturingprct_mean finan_realest_srvsprct_mean ///
+	if vote_g2008_ineligibile == 0 & new_voter_04 == 1 & oos == 0
+
 *Validation for new voters in 2004
+drop vote_prob vote_prob_dec
+predict vote_prob if vote_g2008_ineligibile == 0 & new_voter_04 == 1, pr
+xtile vote_prob_dec = vote_prob if vote_g2008_ineligibile == 0, n(10)
+//tabstat vote_prob vote_g2008 if oos == 1, by(vote_prob_dec) statistics(mean, count)
+hist vote_prob if vote_g2008_ineligibile == 0, bin(100) freq name(new_hist, replace) ///
+	title(North Carolina) subtitle(New voters in  2004)
+graph bar (mean) vote_prob vote_g2008 if vote_g2008_ineligibile == 0 & new_voter_04 == 1, over(vote_prob_dec) name(new_bar, replace) ///
+	title(North Carolina) subtitle(New voters in 2004)
 
 *Model building for non-voters in 2004
+logit vote_g2008 age08_1825 age08_2635 age08_4655 age08_5665 age08_6675 age08_over75 ///
+	if vote_g2008_ineligibile == 0 & vote_g2004 == 0 & oos == 0
+
 *Validation for non-voters in 2004
+drop vote_prob vote_prob_dec
+predict vote_prob if vote_g2008_ineligibile == 0 & non_voter_04 == 1, pr
+xtile vote_prob_dec = vote_prob if vote_g2008_ineligibile == 0, n(10)
+//tabstat vote_prob vote_g2008 if oos == 1, by(vote_prob_dec) statistics(mean, count)
+hist vote_prob if vote_g2008_ineligibile == 0, bin(100) freq name(non_hist, replace) ///
+	title(North Carolina) subtitle(Non-voters in  2004)
+graph bar (mean) vote_prob vote_g2008 if vote_g2008_ineligibile == 0 & non_voter_04 == 1, over(vote_prob_dec) name(non_bar, replace) ///
+	title(North Carolina) subtitle(Non voters in 2004)
 
 *Model building for old voters in 2004
 *Validation for old voters in 2004
